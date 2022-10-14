@@ -1,4 +1,4 @@
-FROM openjdk:11-jre-slim
+FROM redhat/ubi8
 
 ARG kafka_version=3.2.0
 ARG scala_version=2.13
@@ -22,26 +22,15 @@ ENV PATH=${PATH}:${KAFKA_HOME}/bin
 
 COPY download-kafka.sh start-kafka.sh broker-list.sh create-topics.sh versions.sh /tmp2/
 
-RUN set -eux ; \
-    apt-get update ; \
-    apt-get upgrade -s ; \
-    apt-get install -y --no-install-recommends jq net-tools curl wget ; \
-### BEGIN docker for CI tests
-    apt-get install -y --no-install-recommends gnupg lsb-release ; \
-	curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg ; \
-	echo \
-  		"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
-  		$(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null ; \
-    apt-get update ; \
-    apt-get install -y --no-install-recommends docker-ce-cli ; \
-    apt remove -y gnupg lsb-release ; \
-    apt clean ; \
-    apt autoremove -y ; \
-    apt -f install ; \
-### END docker for CI tests
-### BEGIN other for CI tests
-    apt-get install -y --no-install-recommends netcat ; \
-### END other for CI tests
+RUN yum update ; \
+    yum install -y jq wget java-17-openjdk-headless net-tools ; \
+### BEGIN for CI tests
+    yum install -y nmap-ncat  yum-utils ; \
+## NB: Using centos as rhel only has s390x arch.
+    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo ; \
+    yum makecache ; \
+    yum install -y docker-ce-cli ; \
+### END for CI tests
     chmod a+x /tmp2/*.sh ; \
     mv /tmp2/start-kafka.sh /tmp2/broker-list.sh /tmp2/create-topics.sh /tmp2/versions.sh /usr/bin ; \
     sync ; \
@@ -50,7 +39,8 @@ RUN set -eux ; \
     rm /tmp2/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz ; \
     ln -s /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${KAFKA_HOME} ; \
     rm -rf /tmp2 ; \
-    rm -rf /var/lib/apt/lists/*
+    yum clean all ; \
+    rm -rf /var/cache/yum
 
 COPY overrides /opt/overrides
 

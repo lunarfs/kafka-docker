@@ -18,7 +18,7 @@ source "/usr/bin/versions.sh"
 # --bootstrap-server option.
 if [[ "$MAJOR_VERSION" -ge "3" ]]; then
     if [[ -v KAFKA_LISTENERS ]]; then
-        PORT=$(echo "$KAFKA_LISTENERS" | awk -F: '{print $3}' )
+        PORT=$(echo "$KAFKA_LISTENERS" | awk -F'[:|,]' '{print $3}' )
         CONNECT_OPTS="--bootstrap-server localhost:${PORT}"
     else
         CONNECT_OPTS="--bootstrap-server ${BROKER_LIST}"
